@@ -1,0 +1,27 @@
+name: TMAX Signal Bot
+
+on:
+  schedule:
+    # This cron syntax tells GitHub to run the bot every 15 minutes, forever.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # This adds a manual "Run Workflow" button on GitHub so you can test it.
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Dependencies
+        run: pip install requests
+        
+      - name: Run Delta Strategy
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python bot.py
