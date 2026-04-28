@@ -1,27 +1,42 @@
 name: TMAX Signal Bot
-
+ 
 on:
   schedule:
-    # This cron syntax tells GitHub to run the bot every 15 minutes, forever.
-    - cron: '*/15 * * * *'
-  workflow_dispatch: # This adds a manual "Run Workflow" button on GitHub so you can test it.
-
+    # Off-peak minutes: :03, :18, :33, :48 — avoids top-of-hour runner queue congestion
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch: # lets you trigger manually from GitHub UI for testing
+ 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+ 
+    permissions:
+      contents: write  # required for the git push step below
+ 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
-          python-version: '3.10'
-          
-      - name: Install Dependencies
+          fetch-depth: 1  # shallow clone is fine, we just need the latest state
+ 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+ 
+      - name: Install dependencies
         run: pip install requests
-        
-      - name: Run Delta Strategy
+ 
+      - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python bot.py
+ 
+      - name: Commit and push updated CSV log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tmax_log.csv
+          # Only commit if there's actually a change — skips empty commits on failed runs
+          git diff --cached --quiet || git commit -m "chore: update tmax_log [skip ci]"
+          git push
