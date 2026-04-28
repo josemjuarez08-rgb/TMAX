@@ -1,42 +1,110 @@
-name: TMAX Signal Bot
- 
-on:
-  schedule:
-    # Off-peak minutes: :03, :18, :33, :48 — avoids top-of-hour runner queue congestion
-    - cron: '3,18,33,48 * * * *'
-  workflow_dispatch: # lets you trigger manually from GitHub UI for testing
- 
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
- 
-    permissions:
-      contents: write  # required for the git push step below
- 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1  # shallow clone is fine, we just need the latest state
- 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
- 
-      - name: Install dependencies
-        run: pip install requests
- 
-      - name: Run bot
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python bot.py
- 
-      - name: Commit and push updated CSV log
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tmax_log.csv
-          # Only commit if there's actually a change — skips empty commits on failed runs
-          git diff --cached --quiet || git commit -m "chore: update tmax_log [skip ci]"
-          git push
+import requests
+import datetime
+import os
+import csv
+import zoneinfo
+
+# --- Configuration ---
+LAT = 37.6191
+LON = -122.3750
+STATION_ID = "KSFO"
+WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
+LOG_FILE = "tmax_log.csv"
+TIMEZONE = zoneinfo.ZoneInfo("America/Los_Angeles")
+
+# --- Robinhood Contract Target ---
+# Update this value daily based on the specific contract bracket you are trading
+CONTRACT_THRESHOLD = 62 
+
+# --- 1. Get Daily Max So Far (LST-Aware) ---
+def get_daily_max_so_far():
+    """Pulls all KSFO observations since midnight LST and returns the day's max so far."""
+    url = f"https://api.weather.gov/stations/{STATION_ID}/observations"
+    
+    # DST-aware: NWS uses local standard time (PST = UTC-8) even during summer
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    # "Midnight LST" = 08:00 UTC year-round
+    midnight_lst_utc = now_utc.replace(hour=8, minute=0, second=0, microsecond=0)
+    if now_utc < midnight_lst_utc:
+        midnight_lst_utc -= datetime.timedelta(days=1)
+    
+    params = {"start": midnight_lst_utc.isoformat(), "limit": 50}
+    headers = {"User-Agent": "TMAX Signal Bot"}  
+    try:obs_list = requests.get(url, headers=headers, params=params).json()
+        temps_f = []
+        for obs in obs_list.get("features", []):
+            temp_c = obs["properties"]["temperature"]["value"]
+            if temp_c is not None:
+                temps_f.append(round((temp_c * 9 / 5) + 32, 1))
+        
+        return max(temps_f) if temps_f else None
+    except Exception as e:
+        print(f"Error fetching daily max: {e}")
+        return None
+# --- 2. Get NWS Official Forecast High ---
+def get_nws_forecast_high():
+    """Gets NWS's own forecast high for SFO today."""
+    points_url = f"https://api.weather.gov/points/{LAT},{LON}"
+    headers = {"User-Agent": "TMAX Signal Bot"}
+    try:
+        grid = requests.get(points_url, headers=headers).json()
+        forecast_url = grid["properties"]["forecast"]
+        forecast = requests.get(forecast_url, headers=headers).json()
+        
+        # First period is today daytime
+        today = forecast["properties"]["periods"][0]
+        return today["temperature"] 
+    except Exception as e:
+        print(f"Error fetching forecast: {e}")
+        return None
+# --- 3. Log run to CSV ---
+def log_run(forecast_high, daily_max, signal_triggered):
+    """Appends a row to tmax_log.csv so you can audit accuracy over time."""
+    file_exists = os.path.isfile(LOG_FILE)
+    now_str = datetime.datetime.now(TIMEZONE).isoformat()
+     with open(LOG_FILE, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "nws_forecast_high", "daily_max_so_far", "target_threshold", "signal_triggered"])
+        writer.writerow([
+            now_str,
+            forecast_high if forecast_high is not None else "",
+            daily_max if daily_max is not None else "",
+            CONTRACT_THRESHOLD,
+            signal_triggered   ]) # --- 4. Execute Autonomous Strategy ---
+def main():
+    try:
+        daily_max = get_daily_max_so_far()
+        forecast_high = get_nws_forecast_high()
+
+        if daily_max is None or forecast_high is None:
+            print("Missing live data or forecast. Exiting.")
+            return
+
+        # The bot decides the target based on the official NWS forecast
+        target_threshold = forecast_high
+
+        print(f"NWS Forecast (Target): {target_threshold}°F | Max So Far (LST): {daily_max}°F")
+        
+        # Signal triggers when the daily max is within 1°F of beating the forecast
+        signal_triggered = daily_max >= (target_threshold - 1)
+
+        if signal_triggered:
+            msg = (
+                f"🎯 **SFO AUTONOMOUS ALERT** 🎯\n"
+                f"The daily maximum is crushing the official forecast!\n"
+                f"**Bot's Target (NWS Forecast):** {target_threshold}°F\n"
+                f"**Current Daily Max (LST):** {daily_max}°F\n"
+                f"*Look for 'Over {target_threshold}°F' contracts on Robinhood.*"
+            )
+            if WEBHOOK_URL:
+                requests.post(WEBHOOK_URL, json={"content": msg})
+                print("Signal sent to Discord.")
+            else:
+                print("Signal triggered, but Discord webhook is missing.")
+
+        # Log the data for your historical audit
+        log_run(forecast_high, daily_max, signal_triggered)
+
+    except Exception as e:
+        print(f"Error running bot: {e}")
