@@ -3,134 +3,115 @@ import datetime
 import os
 import csv
 import zoneinfo
- 
+
 # --- Configuration ---
 LAT = 37.6191
 LON = -122.3750
 STATION_ID = "KSFO"
 WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
- 
-TIMEZONE = zoneinfo.ZoneInfo("America/Los_Angeles")
-SIGNAL_THRESHOLD = 2.0          # degrees F above forecast to trigger alert
-MAX_OBS_AGE_MINUTES = 45        # reject NWS observations older than this
 LOG_FILE = "tmax_log.csv"
- 
- 
-# --- 1. Get Forecast Data (Open-Meteo) ---
-def get_forecast():
-    """Pulls hourly temp forecast for SFO and returns value for the current local hour."""
-    url = (
-        f"https://api.open-meteo.com/v1/forecast"
-        f"?latitude={LAT}&longitude={LON}"
-        f"&hourly=temperature_2m"
-        f"&temperature_unit=fahrenheit"
-        f"&timezone=America%2FLos_Angeles"
-    )
-    response = requests.get(url).json()
- 
-    now_local = datetime.datetime.now(TIMEZONE)
-    # Open-Meteo returns ISO strings like "2026-04-28T14:00" — match to current hour
-    target = now_local.strftime("%Y-%m-%dT%H:00")
-    times = response["hourly"]["time"]
-    temps = response["hourly"]["temperature_2m"]
- 
-    if target in times:
-        idx = times.index(target)
-        return temps[idx]
-    else:
-        print(f"Warning: could not find forecast slot for {target}")
+TIMEZONE = zoneinfo.ZoneInfo("America/Los_Angeles")
+
+# --- 1. Get Daily Max So Far (LST-Aware) ---
+def get_daily_max_so_far():
+    """Pulls all KSFO observations since midnight LST and returns the day's max so far."""
+    url = f"https://api.weather.gov/stations/{STATION_ID}/observations"
+    
+    # DST-aware: NWS uses local standard time (PST = UTC-8) even during summer
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    # "Midnight LST" = 08:00 UTC year-round
+    midnight_lst_utc = now_utc.replace(hour=8, minute=0, second=0, microsecond=0)
+    if now_utc < midnight_lst_utc:
+        midnight_lst_utc -= datetime.timedelta(days=1)
+    
+    params = {"start": midnight_lst_utc.isoformat(), "limit": 50}
+    headers = {"User-Agent": "TMAX Signal Bot"}  
+    
+    try:
+        obs_list = requests.get(url, headers=headers, params=params).json()
+        temps_f = []
+        for obs in obs_list.get("features", []):
+            temp_c = obs["properties"]["temperature"]["value"]
+            if temp_c is not None:
+                temps_f.append(round((temp_c * 9 / 5) + 32, 1))
+        
+        return max(temps_f) if temps_f else None
+    except Exception as e:
+        print(f"Error fetching daily max: {e}")
         return None
- 
- 
-# --- 2. Get Real-Time Ground Truth (NWS) ---
-def get_actual():
-    """Pulls the latest KSFO observation, validates freshness, and returns temp in Fahrenheit."""
-    url = f"https://api.weather.gov/stations/{STATION_ID}/observations/latest"
+
+# --- 2. Get NWS Official Forecast High ---
+def get_nws_forecast_high():
+    """Gets NWS's own forecast high for SFO today."""
+    points_url = f"https://api.weather.gov/points/{LAT},{LON}"
     headers = {"User-Agent": "TMAX Signal Bot"}
-    response = requests.get(url, headers=headers).json()
- 
-    props = response["properties"]
- 
-    # --- Freshness check ---
-    obs_time_str = props.get("timestamp")
-    if obs_time_str:
-        obs_dt = datetime.datetime.fromisoformat(obs_time_str.replace("Z", "+00:00"))
-        age_minutes = (datetime.datetime.now(datetime.timezone.utc) - obs_dt).total_seconds() / 60
-        if age_minutes > MAX_OBS_AGE_MINUTES:
-            print(f"Skipping: NWS observation is {age_minutes:.0f} min old (limit: {MAX_OBS_AGE_MINUTES} min)")
-            return None, None
-    else:
-        age_minutes = None
- 
-    temp_c = props["temperature"]["value"]
-    if temp_c is None:
-        return None, age_minutes
- 
-    temp_f = round((temp_c * 9 / 5) + 32, 1)
-    return temp_f, age_minutes
- 
- 
+    try:
+        grid = requests.get(points_url, headers=headers).json()
+        forecast_url = grid["properties"]["forecast"]
+        forecast = requests.get(forecast_url, headers=headers).json()
+        
+        # First period is today daytime
+        today = forecast["properties"]["periods"][0]
+        return today["temperature"] 
+    except Exception as e:
+        print(f"Error fetching forecast: {e}")
+        return None
+
 # --- 3. Log run to CSV ---
-def log_run(forecast_temp, actual_temp, delta, signal_triggered, obs_age_minutes):
+def log_run(forecast_high, daily_max, target_threshold, signal_triggered):
     """Appends a row to tmax_log.csv so you can audit accuracy over time."""
     file_exists = os.path.isfile(LOG_FILE)
     now_str = datetime.datetime.now(TIMEZONE).isoformat()
- 
+    
     with open(LOG_FILE, "a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(["timestamp", "forecast_f", "actual_f", "delta", "signal_triggered", "obs_age_minutes"])
+            writer.writerow(["timestamp", "nws_forecast_high", "daily_max_so_far", "target_threshold", "signal_triggered"])
         writer.writerow([
             now_str,
-            round(forecast_temp, 1) if forecast_temp is not None else "",
-            actual_temp if actual_temp is not None else "",
-            round(delta, 1) if delta is not None else "",
-            signal_triggered,
-            round(obs_age_minutes, 1) if obs_age_minutes is not None else ""
-        ])
- 
- 
-# --- 4. Execute Delta Strategy ---
+            forecast_high if forecast_high is not None else "",
+            daily_max if daily_max is not None else "",
+            target_threshold,
+            signal_triggered   
+        ]) 
+
+# --- 4. Execute Autonomous Strategy ---
 def main():
     try:
-        forecast_temp = get_forecast()
-        actual_temp, obs_age = get_actual()
- 
-        if forecast_temp is None:
-            print("No forecast data available. Exiting.")
+        daily_max = get_daily_max_so_far()
+        forecast_high = get_nws_forecast_high()
+
+        if daily_max is None or forecast_high is None:
+            print("Missing live data or forecast. Exiting.")
             return
- 
-        if actual_temp is None:
-            print("No valid actual temp available. Exiting.")
-            log_run(forecast_temp, None, None, False, obs_age)
-            return
- 
-        delta = actual_temp - forecast_temp
-        print(f"Forecast: {forecast_temp}°F | Actual: {actual_temp}°F | Delta: {round(delta, 1)}°F | Obs age: {round(obs_age, 1) if obs_age else '?'} min")
- 
-        signal_triggered = delta >= SIGNAL_THRESHOLD
- 
+
+        # The bot decides the target based on the official NWS forecast
+        target_threshold = forecast_high
+
+        print(f"NWS Forecast (Target): {target_threshold}°F | Max So Far (LST): {daily_max}°F")
+        
+        # Signal triggers when the daily max is within 1°F of beating the forecast
+        signal_triggered = daily_max >= (target_threshold - 1)
+
         if signal_triggered:
             msg = (
-                f"🌡️ **SFO TMAX SIGNAL**\n"
-                f"Real-time temp at KSFO is overshooting the forecast\n"
-                f"**Actual:** {actual_temp}°F\n"
-                f"**Forecast:** {forecast_temp}°F\n"
-                f"**Delta:** +{round(delta, 1)}°F\n"
-                f"**Obs age:** {round(obs_age, 1) if obs_age else '?'} min\n"
-                f"Tracking matches Weather Underground history."
+                f"🎯 **SFO AUTONOMOUS ALERT** 🎯\n"
+                f"The daily maximum is crushing the official forecast!\n"
+                f"**Bot's Target (NWS Forecast):** {target_threshold}°F\n"
+                f"**Current Daily Max (LST):** {daily_max}°F\n"
+                f"*Look for 'Over {target_threshold}°F' contracts on Robinhood.*"
             )
             if WEBHOOK_URL:
                 requests.post(WEBHOOK_URL, json={"content": msg})
                 print("Signal sent to Discord.")
             else:
                 print("Signal triggered, but Discord webhook is missing.")
- 
-        log_run(forecast_temp, actual_temp, delta, signal_triggered, obs_age)
- 
+
+        # Log the data for your historical audit
+        log_run(forecast_high, daily_max, target_threshold, signal_triggered)
+
     except Exception as e:
         print(f"Error running bot: {e}")
- 
- 
+
 if __name__ == "__main__":
     main()
