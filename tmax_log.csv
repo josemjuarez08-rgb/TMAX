@@ -2,3 +2,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-04-28T13:05:44.708824-07:00,66,62.6,66,False
 2026-04-28T16:36:33.425838-07:00,66,66.2,66,True
 2026-04-29T00:39:35.725157-07:00,52,57.2,52,True
+2026-04-29T00:53:22.709099-07:00,52,57.2,52,True
