@@ -2,9 +2,19 @@ name: TMAX Signal Bot
 
 on:
   schedule:
-    # Off-peak minutes: :03, :18, :33, :48 — avoids top-of-hour runner queue congestion
-    - cron: '3,18,33,48 * * * *'
-  workflow_dispatch: # lets you trigger manually from GitHub UI for testing
+    # 1. One update at Midnight (12:00 AM PDT)
+    - cron: '0 7 * * *'
+    
+    # 2. Every 30 mins from 6:00 AM to 8:00 AM PDT
+    - cron: '0,30 13-14 * * *'
+    
+    # 3. Every 15 mins from 8:00 AM to 11:45 PM PDT
+    - cron: '*/15 15-23,0-6 * * *'
+    
+  workflow_dispatch: # Allows manual trigger
+
+permissions:
+  contents: write # Essential for the bot to push the CSV back to the repo
 
 jobs:
   run-bot:
