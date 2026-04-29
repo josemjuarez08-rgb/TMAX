@@ -14,20 +14,17 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 permissions:
-  contents: write # Essential for the bot to push the CSV back to the repo
+  contents: write # Global permission for the bot to write to the repo
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write  # required for the git push step below
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # shallow clone is fine, we just need the latest state
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -42,7 +39,7 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python bot.py
 
-     - name: Commit and push updated CSV log
+      - name: Commit and push updated CSV log
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
