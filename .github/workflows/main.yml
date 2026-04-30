@@ -30,7 +30,7 @@ jobs:
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python bot.py
+        run: python .github/workflows/bot.py
 
       - name: Commit updated files
         run: |
