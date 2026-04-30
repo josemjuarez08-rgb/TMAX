@@ -1,49 +1,48 @@
 name: TMAX Signal Bot
-
+ 
 on:
   schedule:
-    # 1. One update at Midnight (12:00 AM PDT)
-    - cron: '0 7 * * *'
-    
-    # 2. Every 30 mins from 6:00 AM to 8:00 AM PDT
-    - cron: '0,30 13-14 * * *'
-    
-    # 3. Every 15 mins from 8:00 AM to 11:45 PM PDT
-    - cron: '*/15 15-23,0-6 * * *'
-    
-  workflow_dispatch: # Allows manual trigger
-
-permissions:
-  contents: write # Global permission for the bot to write to the repo
-
+    # Off-peak minutes: avoids top-of-hour GitHub Actions queue congestion
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
+ 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
+ 
+    permissions:
+      contents: write
+ 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
+ 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
+ 
       - name: Install dependencies
         run: pip install requests
-
+ 
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python bot.py
-
-      - name: Commit and push updated CSV log
+          # Set today's Robinhood contract strike here.
+          # Update this each day to match the actual contract threshold.
+          CONTRACT_THRESHOLD: ${{ vars.CONTRACT_THRESHOLD }}
+ 
+      - name: Commit updated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tmax_log.csv
-          git commit -m "chore: update tmax_log [skip ci]" || exit 0
-          git pull --rebase origin main
-          git push origin main
+          git add tmax_log.csv last_signal.json
+          git diff --cached --quiet || git commit -m "chore: tmax bot update [skip ci]"
+          git push
+ 
+
+
+
+
