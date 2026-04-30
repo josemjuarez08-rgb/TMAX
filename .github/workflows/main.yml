@@ -30,7 +30,7 @@ jobs:
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python main.py
+        run: python bot.py
 
       - name: Commit updated files
         run: |
