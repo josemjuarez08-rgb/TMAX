@@ -30,14 +30,12 @@ jobs:
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        # NOTE: Change 'main.py' if your Python file has a different name
         run: python main.py
 
       - name: Commit updated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # We must track warning_state.json to prevent pre-market Discord spam
           git add tmax_log.csv last_signal.json warning_state.json
           git diff --cached --quiet || git commit -m "chore: tmax bot update [skip ci]"
           git push
