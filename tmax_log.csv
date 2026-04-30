@@ -6,3 +6,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-04-29T11:03:34.198900-07:00,68,62.6,68,False
 2026-04-29T13:03:01.300718-07:00,68,66.2,68,False
 2026-04-29T16:15:45.052294-07:00,68,66.2,68,False
+2026-04-30T00:53:17.688571-07:00,52,55.4,52,True
