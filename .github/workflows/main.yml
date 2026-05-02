@@ -30,8 +30,9 @@ jobs:
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python .github/workflows/bot.py
-
+          AVAILABLE_THRESHOLDS: ${{ vars.AVAILABLE_THRESHOLDS }}
+        run: python bot.py
+        
       - name: Commit updated files
         run: |
           git config user.name "github-actions[bot]"
