@@ -181,3 +181,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-05-16T08:15:19.998194-07:00,[],,,,,,,,error,False,"Fatal: HTTPSConnectionPool(host='api.weather.gov', port=443): Read timed out. (read timeout=10)"
 2026-05-16T09:09:51.766153-07:00,[],,,66,57.2,67.1,2.06,19.9,in_window,False,
 2026-05-16T10:13:50.189414-07:00,[],,,66,60.8,73.0,3.24,23.8,in_window,False,
+2026-05-16T11:05:40.475644-07:00,[],,,66,62.6,68.9,2.16,20.7,in_window,False,
