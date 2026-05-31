@@ -351,3 +351,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-05-31T04:14:34.984497-07:00,[],,,71,53.6,53.6,0.0,14.6,premarket,False,
 2026-05-31T05:20:52.093526-07:00,[],,,71,53.6,53.6,0.0,15.9,premarket,False,
 2026-05-31T07:16:37.221479-07:00,[],,,71,54.0,60.5,1.03,16.6,premarket,False,
+2026-05-31T08:41:17.077820-07:00,[],,,71,57.2,68.1,2.06,16.3,premarket,False,
