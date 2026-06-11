@@ -457,3 +457,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-06-11T09:33:40.440005-07:00,[],,,84,69.8,78.5,1.96,13.7,in_window,False,
 2026-06-11T12:22:18.143192-07:00,[],,,84,70.0,,,122.3,in_window,False,Stale obs: 122 min old
 2026-06-11T14:33:30.871877-07:00,[],,,84,90.0,90.0,4.05,37.5,in_window,False,
+2026-06-11T16:10:16.087115-07:00,[],,,84,90.0,90.0,-1.1,74.3,out_of_window,False,Stale obs: 74 min old
