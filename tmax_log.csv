@@ -700,3 +700,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-07-04T19:46:51.554017-07:00,[],,,68,69.8,69.8,-3.09,16.9,out_of_window,False,
 2026-07-04T23:25:59.917185-07:00,[],,,68,66.2,66.2,0.0,11.0,out_of_window,False,
 2026-07-05T02:26:26.766734-07:00,[],,,69,55.9,,,11.5,premarket,False,
+2026-07-05T04:16:34.810280-07:00,[],,,69,57.2,67.2,1.03,16.6,premarket,False,
