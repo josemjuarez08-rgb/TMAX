@@ -1544,3 +1544,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-08-18T13:17:36.826313-07:00,[],,,72,66.9,66.9,0.98,12.6,in_window,False,
 2026-08-18T13:41:44.241089-07:00,[],,,72,66.9,66.5,1.03,16.7,in_window,False,
 2026-08-18T13:59:14.623523-07:00,[],,,72,68.0,68.0,2.42,24.3,in_window,False,
+2026-08-18T14:21:36.580636-07:00,[],,,72,68.0,68.0,1.03,16.6,in_window,False,
