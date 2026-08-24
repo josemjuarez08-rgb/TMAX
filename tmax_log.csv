@@ -1793,3 +1793,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-08-24T02:12:04.142111-07:00,[],,,72,60.8,,,22.1,premarket,False,
 2026-08-24T03:02:05.057731-07:00,[],,,,,,,,error,False,Fatal: Expecting value: line 1 column 1 (char 0)
 2026-08-24T03:41:59.886939-07:00,[],,,72,60.8,60.8,-1.03,17.0,premarket,False,
+2026-08-24T04:05:50.907984-07:00,[],,,72,60.8,60.8,0.0,20.9,premarket,False,
