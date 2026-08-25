@@ -1834,3 +1834,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-08-25T04:03:32.864117-07:00,[],,,72,60.8,60.8,0.0,88.5,premarket,False,Stale obs: 89 min old
 2026-08-25T04:41:50.262847-07:00,[],,,72,60.8,,,126.8,premarket,False,Stale obs: 127 min old
 2026-08-25T05:01:56.734145-07:00,[],,,72,60.8,60.8,-0.86,22.0,premarket,False,
+2026-08-25T05:56:37.213299-07:00,[],,,72,60.8,60.8,-0.67,21.6,premarket,False,
