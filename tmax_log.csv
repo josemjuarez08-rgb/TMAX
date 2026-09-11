@@ -1974,3 +1974,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-09-10T12:54:56.264146-07:00,[],,,81,82.9,82.9,0.0,19.9,in_window,False,
 2026-09-10T15:12:49.055232-07:00,[],,,81,84.2,84.2,-2.95,12.8,out_of_window,False,
 2026-09-10T17:09:07.641131-07:00,[],,,81,84.2,84.2,-3.09,19.1,out_of_window,False,
+2026-09-10T21:37:32.631107-07:00,[],,,74,84.2,84.2,0.0,12.5,out_of_window,False,
