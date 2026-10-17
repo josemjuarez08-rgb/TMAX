@@ -2180,3 +2180,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-10-16T10:08:45.064586-07:00,[],,,87,71.6,89.6,5.14,18.8,in_window,False,
 2026-10-16T12:56:22.617624-07:00,[],,,87,73.4,,,121.4,in_window,False,Stale obs: 121 min old
 2026-10-16T15:26:20.171818-07:00,[],,,87,84.2,84.2,3.09,26.3,out_of_window,False,
+2026-10-16T17:39:51.344213-07:00,[],,,87,84.2,84.2,-3.09,19.9,out_of_window,False,
