@@ -2354,3 +2354,4 @@ timestamp,nws_forecast_high,daily_max_so_far,target_threshold,signal_triggered
 2026-11-22T09:09:28.062526-08:00,[],,,56,53.6,59.1,1.14,49.5,in_window,False,Stale obs: 49 min old
 2026-11-22T14:27:39.062769-08:00,[],,,56,55.4,55.4,1.2,37.7,in_window,False,
 2026-11-22T18:56:45.105134-08:00,[],,,58,55.4,55.4,-0.24,21.8,out_of_window,False,
+2026-11-23T03:42:29.164727-08:00,[],,,58,48.2,47.1,0.21,46.5,premarket,False,Stale obs: 46 min old
